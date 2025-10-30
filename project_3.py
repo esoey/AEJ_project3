@@ -1,27 +1,30 @@
-import numpy as np, matplotlib.pyplot as plt
 '''
 Module has Monte Carlo simulation-class and accessible volume-class.
 '''
-class Monte_Carlo_simulations:
+import numpy as np
+import matplotlib.pyplot as plt
+
+class MonteCarloSimulations:
     '''
     Class for doing Monte Carlo simulations in a 3D space.
-    ''' 
+    '''
     def __init__(self, min_xyz, max_xyz):
         '''
         Initial values.
 
         Args:
         --------
-            min_xyz (array-like): min boundries given in meters of the x-, y- and z-axis measured in Ångstrøm [Å]
-            max_xyz (array-like): max boundries given in meters of the x-, y- and z-axis measured in Ångstrøm [Å]
+            min_xyz (array-like): min boundries of the (x, y, z)-axis measured in Ångstrøm [Å]
+            max_xyz (array-like): max boundries of the (x, y, z)-axis measured in Ångstrøm [Å]
         '''
         assert len(min_xyz) == 3, "Min boundry should have three dimensions"
         assert len(max_xyz) == 3, "Max boundry should have three dimensions"
         for i in range(3):
-            assert isinstance(min_xyz[i], (float, int)) and isinstance(max_xyz[i], (float, int)), "Boundries must be floats or integers"
+            assert isinstance(min_xyz[i], (float, int)) and isinstance(max_xyz[i], (float, int)),'''
+            Boundries must be floats or integers'''
             min_xyz[i] = min_xyz[i]
             max_xyz[i] = max_xyz[i]
-        
+
         self.min_xyz = np.array(min_xyz)
         self.max_xyz = np.array(max_xyz)
 
@@ -35,7 +38,7 @@ class Monte_Carlo_simulations:
             (array): a point in 3D-space (x, y, z)
         '''
         return np.random.uniform(self.min_xyz, self.max_xyz)
-    
+
 
     def place_random_sphere(self):
         '''
@@ -43,20 +46,21 @@ class Monte_Carlo_simulations:
 
         Returns:
         --------
-            center of sphere (array): the point in 3D-space (x, y, z) of which is the center of the sphere
+            center_of_sphere (array): the point (center of sphere) in 3D-space (x, y, z)
             radius (float): radius of the sphere within the boundaries of the simulation space
         '''
         center_of_sphere = self.place_random_point()
         max_radius = np.min(np.append(
-                                center_of_sphere - self.min_xyz, 
+                                center_of_sphere - self.min_xyz,
                                 self.max_xyz - center_of_sphere))
 
-        return center_of_sphere, np.random.uniform(1e-16, max_radius)
-    
+        return center_of_sphere, np.random.uniform(0, max_radius)
+
 
     def in_sphere(self, point, center, radius):
         '''
-        Computes the length of a vector from a point to the center of the sphere and compare it to the radius of the sphere to check if a point is within a sphere.
+        Computes the length of a vector from a point to the center of the sphere and
+        compare it to the radius of the sphere to check if a point is within a sphere.
 
         Args:
         --------
@@ -69,11 +73,12 @@ class Monte_Carlo_simulations:
             (bool)
         '''
         return np.sqrt(np.sum((point-center)**2)) <= radius
-    
+
 
     def calculate_fraction_of_points(self, n_points, center, radius):
         '''
-        Creates a random sphere inside the simulation space. Creates n random points and check whether the point is inside the sphere or not.
+        Creates a random sphere inside the simulation space. 
+        Creates n random points and check whether the point is inside the sphere or not.
 
         Args:
         --------
@@ -97,25 +102,27 @@ class Monte_Carlo_simulations:
 
     def calculate_accuracy(self, n_points, fraction_of_hits):
         '''
-        Calculates the accuracy of our Monte Carlo simulation in regards to the analytical expression.
+        Calculates the accuracy of our Monte Carlo simulation in regards to the analytical 
+        expression.
 
         Args:
         --------
             n_points (int): number of random points
             fraction_of_hits (float): fraction of points inside
             radius (float): radius of the sphere
-        
+
         Returns:
         --------
             est_volume (float): estimated volume of sphere
             std_err (float): standard error
             true_volume (float): analytical volume of the sphere
         '''
-        volume_of_simulation_area = (self.max_xyz[0]-self.min_xyz[0]) * (self.max_xyz[1]-self.min_xyz[1]) * (self.max_xyz[2]-self.min_xyz[2]) 
-        est_volume = volume_of_simulation_area * fraction_of_hits
-        std_err = volume_of_simulation_area * np.sqrt((fraction_of_hits * (1-fraction_of_hits))/n_points)
+        min_xyz, max_xyz = self.min_xyz, self.max_xyz
+        vol_sim_area = (max_xyz[0]-min_xyz[0]) * (max_xyz[1]-min_xyz[1]) * (max_xyz[2]-min_xyz[2])
+        est_volume = vol_sim_area * fraction_of_hits
+        std_err = vol_sim_area * np.sqrt((fraction_of_hits * (1-fraction_of_hits))/n_points)
         return est_volume, std_err
-    
+
 
     def calculate_analytical(self, radius):
         '''
@@ -129,7 +136,7 @@ class Monte_Carlo_simulations:
             (float): volume of the sphere
         '''
         return 4/3 * np.pi * radius**3
-    
+
 
     def plot_3d(self, points_inside):
         '''
@@ -159,10 +166,11 @@ class Monte_Carlo_simulations:
         -------
             (float): the estimation of pi
         '''
-        volume_of_simulation_area = (self.max_xyz[0]-self.min_xyz[0]) * (self.max_xyz[1]-self.min_xyz[1]) * (self.max_xyz[2]-self.min_xyz[2])
+        min_xyz, max_xyz = self.min_xyz, self.max_xyz
+        vol_sim_area = (max_xyz[0]-min_xyz[0]) * (max_xyz[1]-min_xyz[1]) * (max_xyz[2]-min_xyz[2])
 
-        return (3 * volume_of_simulation_area * (points_inside/n_points)) / (4 * radius**3)
-    
+        return (3 * vol_sim_area * (points_inside/n_points)) / (4 * radius**3)
+
 
     def translate_periodic_table(self, atom):
         '''
@@ -184,7 +192,7 @@ class Monte_Carlo_simulations:
             "N": 1.55
         }
         return p_table[atom]
-    
+
 
     def change_boundaries(self, dna):
         '''
@@ -199,7 +207,7 @@ class Monte_Carlo_simulations:
             x_coord.append(atom[0][0])
             y_coord.append(atom[0][1])
             z_coord.append(atom[0][2])
-        
+
         x_min = [np.min(x_coord), dna[np.argmin(x_coord)][1]]
         y_min = [np.min(y_coord), dna[np.argmin(y_coord)][1]]
         z_min = [np.min(z_coord), dna[np.argmin(z_coord)][1]]
@@ -207,11 +215,11 @@ class Monte_Carlo_simulations:
         y_max = [np.max(y_coord), dna[np.argmax(y_coord)][1]]
         z_max = [np.max(z_coord), dna[np.argmax(z_coord)][1]]
         buffer = 5
-        
+
         self.min_xyz = np.array((x_min[0]-x_min[1]-buffer, y_min[0]-y_min[1]-buffer, z_min[0]-z_min[1]-buffer))
         self.max_xyz = np.array((x_max[0]+x_max[1]+buffer, y_max[0]+y_max[1]+buffer, z_max[0]+z_max[1]+buffer))
 
-    
+
     def random_walker(self, n_steps, n_walkers):
         '''
         Creates a set of random walkers that each starts from a random point.
@@ -235,11 +243,12 @@ class Monte_Carlo_simulations:
                 z.append(z[-1] + 2*np.random.randint(0,2)-1)
             set_of_walkers.append(np.array((x, y, z)))
         return set_of_walkers
-    
+
 
     def fast_random_walker(self, n_steps, n_walkers):
         '''
-        Creates a set of random walkers that each starts from a random point that runs faster with less iterations.
+        Creates a set of random walkers that each starts from a random point that
+        runs faster with less iterations.
 
         Args:
         --------
@@ -260,7 +269,7 @@ class Monte_Carlo_simulations:
         return set_of_walkers
 
 
-class accessible_volume:
+class AccessibleVolume:
     '''
     A class for calculating the accessible volume around a DNA in a 3D space.
     '''
@@ -281,7 +290,7 @@ class accessible_volume:
             x_coord.append(atom[0][0])
             y_coord.append(atom[0][1])
             z_coord.append(atom[0][2])
-        
+
         x_min = [np.min(x_coord), dna[np.argmin(x_coord)][1]]
         y_min = [np.min(y_coord), dna[np.argmin(y_coord)][1]]
         z_min = [np.min(z_coord), dna[np.argmin(z_coord)][1]]
@@ -289,14 +298,15 @@ class accessible_volume:
         y_max = [np.max(y_coord), dna[np.argmax(y_coord)][1]]
         z_max = [np.max(z_coord), dna[np.argmax(z_coord)][1]]
         buffer = 5
-        
+
         self.min_xyz = np.array((x_min[0]-x_min[1]-buffer, y_min[0]-y_min[1]-buffer, z_min[0]-z_min[1]-buffer))
         self.max_xyz = np.array((x_max[0]+x_max[1]+buffer, y_max[0]+y_max[1]+buffer, z_max[0]+z_max[1]+buffer))
 
 
     def random_walker_with_no_collison(self, init_xyz, n_steps):
         '''
-        Random walker with a set initial position that also checks that the points are collision-free.
+        Random walker with a set initial position that also checks that the points are 
+        collision-free.
 
         Args:
         --------
@@ -322,7 +332,7 @@ class accessible_volume:
                 z.append(point[2])
                 path.append(np.array((point[0], point[1], point[2])))
         return np.array(path)
-    
+
 
     def collision(self, point):
         '''
@@ -340,6 +350,7 @@ class accessible_volume:
             distance_vector = np.sqrt(np.sum((point-atom[0])**2))
             if self.radius_of_point + atom[1] > distance_vector:
                 return True
+        return False
 
 
     def pbc(self, point):
@@ -349,7 +360,7 @@ class accessible_volume:
         Args:
         --------
             point (list): (x, y, z)-coordinates for a point
-        
+
         Return:
         ---------
             point (list): (x, y, z)-coordinates for a point
@@ -370,11 +381,11 @@ class accessible_volume:
             point[2] = np.floor(self.min_xyz[2])
 
         return point
-        
-        
+
+
 
 if __name__ == "__main__":
-    test = Monte_Carlo_simulations([-3, -3, -3], [3, 3, 3])
+    test = MonteCarloSimulations([-3, -3, -3], [3, 3, 3])
     assert test, "Object was not created"
     assert len(test.place_random_point()) == 3, "Random point was not three dimensions"
     test_sphere_center, test_sphere_radius = np.array((0, 0, 0)), 1.5
