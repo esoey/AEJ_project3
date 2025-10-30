@@ -1,6 +1,6 @@
 import numpy as np, matplotlib.pyplot as plt
 '''
-Module has Monte Carlo simulation class and ...
+Module has Monte Carlo simulation-class and accessible volume-class.
 '''
 class Monte_Carlo_simulations:
     '''
@@ -12,14 +12,13 @@ class Monte_Carlo_simulations:
 
         Args:
         --------
-            min_xyz (array-like): min boundries given in meters of the x-, y- and z-axis measured in nanometers [nm]
-            max_xyz (array-like): max boundries given in meters of the x-, y- and z-axis measured in nanometers [nm]
+            min_xyz (array-like): min boundries given in meters of the x-, y- and z-axis measured in Ångstrøm [Å]
+            max_xyz (array-like): max boundries given in meters of the x-, y- and z-axis measured in Ångstrøm [Å]
         '''
         assert len(min_xyz) == 3, "Min boundry should have three dimensions"
         assert len(max_xyz) == 3, "Max boundry should have three dimensions"
         for i in range(3):
             assert isinstance(min_xyz[i], (float, int)) and isinstance(max_xyz[i], (float, int)), "Boundries must be floats or integers"
-            # Taken from w3school
             min_xyz[i] = min_xyz[i]
             max_xyz[i] = max_xyz[i]
         
@@ -167,7 +166,7 @@ class Monte_Carlo_simulations:
 
     def translate_periodic_table(self, atom):
         '''
-        Reads the periodic table and returns the atomic radius (in nanometer [nm]) of the given atom.
+        Reads the periodic table and returns the atomic radius (in Ångstrøm [Å]) of the given atom.
 
         Args:
         --------
@@ -175,18 +174,204 @@ class Monte_Carlo_simulations:
 
         Returns:
         --------
-            (float): atmoic radius [nm]
+            (float): atmoic radius [Å]
         '''
         p_table = {
-            "H": 0.12,
-            "O": 0.152,
-            "P": 0.18,
-            "C": 0.17,
-            "N": 0.155
+            "H": 1.2,
+            "O": 1.52,
+            "P": 1.8,
+            "C": 1.7,
+            "N": 1.55
         }
         return p_table[atom]
-        
     
+
+    def change_boundaries(self, dna):
+        '''
+        Changes boundaries of the simulation box in terms of a DNA-string.
+
+        Args:
+        -------
+            dna (list): a list of all atoms in a DNA sequence, with it's respective radius
+        '''
+        x_coord, y_coord, z_coord = [], [], []
+        for atom in dna:
+            x_coord.append(atom[0][0])
+            y_coord.append(atom[0][1])
+            z_coord.append(atom[0][2])
+        
+        x_min = [np.min(x_coord), dna[np.argmin(x_coord)][1]]
+        y_min = [np.min(y_coord), dna[np.argmin(y_coord)][1]]
+        z_min = [np.min(z_coord), dna[np.argmin(z_coord)][1]]
+        x_max = [np.max(x_coord), dna[np.argmax(x_coord)][1]]
+        y_max = [np.max(y_coord), dna[np.argmax(y_coord)][1]]
+        z_max = [np.max(z_coord), dna[np.argmax(z_coord)][1]]
+        buffer = 5
+        
+        self.min_xyz = np.array((x_min[0]-x_min[1]-buffer, y_min[0]-y_min[1]-buffer, z_min[0]-z_min[1]-buffer))
+        self.max_xyz = np.array((x_max[0]+x_max[1]+buffer, y_max[0]+y_max[1]+buffer, z_max[0]+z_max[1]+buffer))
+
+    
+    def random_walker(self, n_steps, n_walkers):
+        '''
+        Creates a set of random walkers that each starts from a random point.
+
+        Args:
+        --------
+            n_steps (int): number of steps the walkers will take
+            n_walkers (int): number of walkers
+
+        Returns:
+        --------
+            set_of_walkers (list): list of coordinates that each walker has traveled
+        '''
+        set_of_walkers = []
+        for _ in range(n_walkers):
+            start_point = self.place_random_point()
+            x, y, z = [start_point[0]], [start_point[1]], [start_point[2]]
+            for _ in range(n_steps):
+                x.append(x[-1] + 2*np.random.randint(0,2)-1)
+                y.append(y[-1] + 2*np.random.randint(0,2)-1)
+                z.append(z[-1] + 2*np.random.randint(0,2)-1)
+            set_of_walkers.append(np.array((x, y, z)))
+        return set_of_walkers
+    
+
+    def fast_random_walker(self, n_steps, n_walkers):
+        '''
+        Creates a set of random walkers that each starts from a random point that runs faster with less iterations.
+
+        Args:
+        --------
+            n_steps (int): number of steps the walkers will take
+            n_walkers (int): number of walkers
+
+        Returns:
+        --------
+            set_of_walkers (list): list of coordinates that each walker has traveled
+        '''
+        set_of_walkers = []
+        for _ in range(n_walkers):
+            start_point = self.place_random_point()
+            x = start_point[0] + np.cumsum(2*np.random.randint(0, 2, size=n_steps)-1)
+            y = start_point[1] + np.cumsum(2*np.random.randint(0, 2, size=n_steps)-1)
+            z = start_point[2] + np.cumsum(2*np.random.randint(0, 2, size=n_steps)-1)
+            set_of_walkers.append(np.array((x, y, z)))
+        return set_of_walkers
+
+
+class accessible_volume:
+    '''
+    A class for calculating the accessible volume around a DNA in a 3D space.
+    '''
+    def __init__(self, dna, radius_of_point):
+        '''
+        Initial values.
+
+        Args:
+        --------
+            dna (list): 1. element is the (x, y, z)-coordinates of each atom in the DNA and 2. element is the radius in Ångstrøm [Å]
+            radius_of_point (float): radius of the point of the walker in Ångstrøm [Å]
+        '''
+        self.dna = dna
+        self.radius_of_point = radius_of_point
+
+        x_coord, y_coord, z_coord = [], [], []
+        for atom in dna:
+            x_coord.append(atom[0][0])
+            y_coord.append(atom[0][1])
+            z_coord.append(atom[0][2])
+        
+        x_min = [np.min(x_coord), dna[np.argmin(x_coord)][1]]
+        y_min = [np.min(y_coord), dna[np.argmin(y_coord)][1]]
+        z_min = [np.min(z_coord), dna[np.argmin(z_coord)][1]]
+        x_max = [np.max(x_coord), dna[np.argmax(x_coord)][1]]
+        y_max = [np.max(y_coord), dna[np.argmax(y_coord)][1]]
+        z_max = [np.max(z_coord), dna[np.argmax(z_coord)][1]]
+        buffer = 5
+        
+        self.min_xyz = np.array((x_min[0]-x_min[1]-buffer, y_min[0]-y_min[1]-buffer, z_min[0]-z_min[1]-buffer))
+        self.max_xyz = np.array((x_max[0]+x_max[1]+buffer, y_max[0]+y_max[1]+buffer, z_max[0]+z_max[1]+buffer))
+
+
+    def random_walker_with_no_collison(self, init_xyz, n_steps):
+        '''
+        Random walker with a set initial position that also checks that the points are collision-free.
+
+        Args:
+        --------
+            init_xyz (array): (x, y, z)-coordinates of the starting point of the walker
+            n_steps (int): number of steps
+
+        Returns:
+        --------
+            x (list): x-coordinates of the path of the walker
+            y (list): y-coordinates of the path of the walker
+            z (list): z-coordinates of the path of the walker
+        '''
+        x, y, z = [init_xyz[0]], [init_xyz[1]], [init_xyz[2]]
+        path = []
+        for _ in range(n_steps):
+            x_step = x[-1] + 2*np.random.randint(0,2)-1
+            y_step = y[-1] + 2*np.random.randint(0,2)-1
+            z_step = z[-1] + 2*np.random.randint(0,2)-1
+            point = self.pbc(np.array((x_step, y_step, z_step)))
+            if not self.collision(point):
+                x.append(point[0])
+                y.append(point[1])
+                z.append(point[2])
+                path.append(np.array((point[0], point[1], point[2])))
+        return np.array(path)
+    
+
+    def collision(self, point):
+        '''
+        Checks whether a point collides with any of the atoms initialized in the class.
+
+        Args:
+        --------
+            point (list): (x, y, z)-coordinates for a point
+
+        Return:
+        --------
+            (bool)
+        '''
+        for atom in self.dna:
+            distance_vector = np.sqrt(np.sum((point-atom[0])**2))
+            if self.radius_of_point + atom[1] > distance_vector:
+                return True
+
+
+    def pbc(self, point):
+        '''
+        Function to prevent a walker to leave the simulation box.
+
+        Args:
+        --------
+            point (list): (x, y, z)-coordinates for a point
+        
+        Return:
+        ---------
+            point (list): (x, y, z)-coordinates for a point
+        '''
+        if point[0] < self.min_xyz[0]:
+            point[0] = np.ceil(self.max_xyz[0])
+        elif point[0] > self.max_xyz[0]:
+            point[0] = np.floor(self.min_xyz[0])
+
+        if point[1] < self.min_xyz[1]:
+            point[1] = np.ceil(self.max_xyz[1])
+        elif point[1] > self.max_xyz[1]:
+            point[1] = np.floor(self.min_xyz[1])
+
+        if point[2] < self.min_xyz[2]:
+            point[2] = np.ceil(self.max_xyz[2])
+        elif point[2] > self.max_xyz[2]:
+            point[2] = np.floor(self.min_xyz[2])
+
+        return point
+        
+        
 
 if __name__ == "__main__":
     test = Monte_Carlo_simulations([-3, -3, -3], [3, 3, 3])
